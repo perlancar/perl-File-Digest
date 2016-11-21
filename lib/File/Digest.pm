@@ -21,28 +21,92 @@ $SPEC{':package'} = {
         '(using various algorithms)',
 };
 
+my %arg_file = (
+    file => {
+        schema => ['filename*'],
+        req => 1,
+        pos => 0,
+        cmdline_aliases => {f=>{}},
+    },
+);
+
+my %arg_files = (
+    files => {
+        'x.name.is_plural' => 1,
+        'x.name.singular' => 'file',
+        schema => ['array*', of=>'filename*'],
+        req => 1,
+        pos => 0,
+        greedy => 1,
+        cmdline_aliases => {f=>{}},
+    },
+);
+
+my %arg_algorithm = (
+    algorithm => {
+        schema => ['str*', in=>[qw/crc32 md5 sha1 sha256/]],
+        default => 'md5',
+        cmdline_aliases => {a=>{}},
+    },
+);
+
+$SPEC{digest_file} = {
+    v => 1.1,
+    summary => 'Calculate file checksums/digests (using various algorithms)',
+    args => {
+        %arg_file,
+        %arg_algorithm,
+    },
+};
+sub digest_file {
+    my %args = @_;
+
+    my $file = $args{file};
+    my $algo = $args{algorithm} // 'md5';
+
+    unless (-f $file) {
+        $log->warnf("Can't open %s: no such file", $file);
+        return [404, "No such file '$file'"];
+    }
+    open my($fh), "<", $file or do {
+        $log->warnf("Can't open %s: %s", $file, $!);
+        return [500, "Can't open '$file': $!"];
+        next;
+    };
+    if ($algo eq 'md5') {
+        require Digest::MD5;
+        my $ctx = Digest::MD5->new;
+        $ctx->addfile($fh);
+        return [200, "OK", $ctx->hexdigest];
+    } elsif ($algo eq 'sha1') {
+        require Digest::SHA;
+        my $ctx = Digest::SHA->new(1);
+        $ctx->addfile($fh);
+        return [200, "OK", $ctx->hexdigest];
+    } elsif ($algo eq 'sha256') {
+        require Digest::SHA;
+        my $ctx = Digest::SHA->new(256);
+        $ctx->addfile($fh);
+        return [200, "OK", $ctx->hexdigest];
+    } elsif ($algo eq 'crc32') {
+        require Digest::CRC;
+        my $ctx = Digest::CRC->new(type=>'crc32');
+        $ctx->addfile($fh);
+        return [200, "OK", $ctx->hexdigest];
+    } else {
+        die "Invalid/unsupported algorithm '$algo'";
+    }
+}
+
 $SPEC{digest_files} = {
     v => 1.1,
     summary => 'Calculate file checksums/digests (using various algorithms)',
     args => {
-        files => {
-            'x.name.is_plural' => 1,
-            'x.name.singular' => 'file',
-            schema => ['array*', of=>'filename*'],
-            req => 1,
-            pos => 0,
-            greedy => 1,
-            cmdline_aliases => {f=>{}},
-        },
-        algorithm => {
-            schema => ['str*', in=>[qw/crc32 md5 sha1 sha256/]],
-            default => 'md5',
-            cmdline_aliases => {a=>{}},
-        },
+        %arg_files,
+        %arg_algorithm,
     },
 };
 sub digest_files {
-
     my %args = @_;
 
     my $files = $args{files};
@@ -52,43 +116,9 @@ sub digest_files {
     my @res;
 
     for my $file (@$files) {
-        unless (-f $file) {
-            $log->warnf("Can't open %s: no such file", $file);
-            $envres->add_result(404, "No such file", {item_id=>$file});
-            next;
-        }
-        open my($fh), "<", $file or do {
-            $log->warnf("Can't open %s: %s", $file, $!);
-            $envres->add_result(500, "Can't open: $!", {item_id=>$file});
-            next;
-        };
-        if ($algo eq 'md5') {
-            require Digest::MD5;
-            my $ctx = Digest::MD5->new;
-            $ctx->addfile($fh);
-            $envres->add_result(200, "OK", {item_id=>$file});
-            push @res, {file=>$file, digest=>$ctx->hexdigest};
-        } elsif ($algo eq 'sha1') {
-            require Digest::SHA;
-            my $ctx = Digest::SHA->new(1);
-            $ctx->addfile($fh);
-            $envres->add_result(200, "OK", {item_id=>$file});
-            push @res, {file=>$file, digest=>$ctx->hexdigest};
-        } elsif ($algo eq 'sha256') {
-            require Digest::SHA;
-            my $ctx = Digest::SHA->new(256);
-            $ctx->addfile($fh);
-            $envres->add_result(200, "OK", {item_id=>$file});
-            push @res, {file=>$file, digest=>$ctx->hexdigest};
-        } elsif ($algo eq 'crc32') {
-            require Digest::CRC;
-            my $ctx = Digest::CRC->new(type=>'crc32');
-            $ctx->addfile($fh);
-            $envres->add_result(200, "OK", {item_id=>$file});
-            push @res, {file=>$file, digest=>$ctx->hexdigest};
-        } else {
-            die "Invalid/unsupported algorithm '$algo'";
-        }
+        my $itemres = digest_file(file => $file, algorithm=>$algo);
+        $envres->add_result($itemres->[0], $itemres->[1], {item_id=>$file});
+        push @res, {file=>$file, digest=>$itemres->[2]} if $itemres->[0] == 200;
     }
 
     $envres = $envres->as_struct;
