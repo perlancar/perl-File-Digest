@@ -1,5 +1,12 @@
 Revision history for File-Digest
 
+0.002   2016-11-21 (PERLANCAR)
+
+	- No functional changes.
+
+	- Fix Rinci metadata.
+
+
 0.001   2016-11-21 (PERLANCAR)
 
         - First release, checking digest not yet implemented.
