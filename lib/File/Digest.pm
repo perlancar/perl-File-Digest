@@ -28,7 +28,7 @@ $SPEC{digest_files} = {
         files => {
             'x.name.is_plural' => 1,
             'x.name.singular' => 'file',
-            schema => ['array*', of=>'file*'],
+            schema => ['array*', of=>'filename*'],
             req => 1,
             pos => 0,
             greedy => 1,
