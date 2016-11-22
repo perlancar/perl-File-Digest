@@ -3,6 +3,7 @@
 use 5.010001;
 use strict;
 use warnings;
+use Test::Exception;
 use Test::More 0.98;
 
 use File::Digest qw(digest_files);
@@ -12,6 +13,14 @@ use File::Slurper qw(write_text);
 my $dir = tempdir(CLEANUP=>1);
 write_text("$dir/1", "one");
 write_text("$dir/2", "two");
+
+subtest "unknown algoritm -> dies" => sub {
+    dies_ok {
+        digest_files(
+            algorithm=>"foo", files=>["$dir/1", "$dir/2", "$dir/3"],
+        );
+    };
+};
 
 subtest "algoritm md5" => sub {
     my $res = digest_files(

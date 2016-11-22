@@ -89,13 +89,14 @@ sub digest_file {
         $ctx->addfile($fh);
         return [200, "OK", $ctx->hexdigest];
     } else {
-        die "Invalid/unsupported algorithm '$algo'";
+        return [400, "Invalid/unsupported algorithm '$algo'"];
     }
 }
 
 $SPEC{digest_files} = {
     v => 1.1,
     summary => 'Calculate file checksums/digests (using various algorithms)',
+
     args => {
         %arg_files,
         %arg_algorithm,
@@ -112,6 +113,7 @@ sub digest_files {
 
     for my $file (@$files) {
         my $itemres = digest_file(file => $file, algorithm=>$algo);
+        die $itemres->[1] if $itemres->[0] == 400;
         $envres->add_result($itemres->[0], $itemres->[1], {item_id=>$file});
         push @res, {file=>$file, digest=>$itemres->[2]} if $itemres->[0] == 200;
     }
