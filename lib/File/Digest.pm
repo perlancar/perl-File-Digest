@@ -44,7 +44,7 @@ my %arg_files = (
 
 my %arg_algorithm = (
     algorithm => {
-        schema => ['str*', in=>[qw/crc32 md5 sha1 sha256/]],
+        schema => ['str*', in=>[qw/crc32 md5 sha1 sha224 sha256 sha384 sha512 sha512224 sha512256/]],
         default => 'md5',
         cmdline_aliases => {a=>{}},
     },
@@ -78,14 +78,9 @@ sub digest_file {
         my $ctx = Digest::MD5->new;
         $ctx->addfile($fh);
         return [200, "OK", $ctx->hexdigest];
-    } elsif ($algo eq 'sha1') {
+    } elsif ($algo =~ /\Asha(512224|512256|224|256|384|512|1)\z/) {
         require Digest::SHA;
-        my $ctx = Digest::SHA->new(1);
-        $ctx->addfile($fh);
-        return [200, "OK", $ctx->hexdigest];
-    } elsif ($algo eq 'sha256') {
-        require Digest::SHA;
-        my $ctx = Digest::SHA->new(256);
+        my $ctx = Digest::SHA->new($1);
         $ctx->addfile($fh);
         return [200, "OK", $ctx->hexdigest];
     } elsif ($algo eq 'crc32') {
