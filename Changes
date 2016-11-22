@@ -1,5 +1,11 @@
 Revision history for File-Digest
 
+0.004   2016-11-23 (PERLANCAR)
+
+	- Support the other SHA algorithms: sha224, sha284, sha512,
+	  sha512224, sha512256.
+
+
 0.003   2016-11-22 (PERLANCAR)
 
 	- [refactor] Extract routine digest_file().
