@@ -9,7 +9,7 @@ use warnings;
 use Log::Any::IfLOG '$log';
 
 use Exporter qw(import);
-our @EXPORT_OK = qw(digest_files check_file_digest);
+our @EXPORT_OK = qw(digest_files);
 
 use Perinci::Object;
 
@@ -17,8 +17,7 @@ our %SPEC;
 
 $SPEC{':package'} = {
     v => 1.1,
-    summary => 'Calculate and check file checksum/digest '.
-        '(using various algorithms)',
+    summary => 'Calculate file checksum/digest (using various algorithms)',
 };
 
 my %arg_file = (
@@ -52,7 +51,12 @@ my %arg_algorithm = (
 
 $SPEC{digest_file} = {
     v => 1.1,
-    summary => 'Calculate file checksums/digests (using various algorithms)',
+    summary => 'Calculate file checksum/digest (using various algorithms)',
+    description => <<'_',
+
+Return 400 status when algorithm is unknown/unsupported.
+
+_
     args => {
         %arg_file,
         %arg_algorithm,
@@ -95,8 +99,12 @@ sub digest_file {
 
 $SPEC{digest_files} = {
     v => 1.1,
-    summary => 'Calculate file checksums/digests (using various algorithms)',
+    summary => 'Calculate file checksum/digest (using various algorithms)',
+    description => <<'_',
 
+Dies when algorithm is unsupported/unknown.
+
+_
     args => {
         %arg_files,
         %arg_algorithm,
@@ -124,14 +132,6 @@ sub digest_files {
     $envres;
 }
 
-$SPEC{check_file_digest} = {
-    v => 1.1,
-    summary => 'Calculate file checksums/digests (using various algorithms)',
-};
-sub check_file_digest {
-    [501, "Not yet implemented"];
-}
-
 1;
 # ABSTRACT:
 
@@ -153,5 +153,8 @@ sub check_file_digest {
 L<sum> from L<PerlPowerTools> (which only supports older algorithms like CRC32).
 
 Backend modules: L<Digest::CRC>, L<Digest::MD5>, L<Digest::SHA>.
+
+L<xsum> from L<App::xsum> which can also check checksums/digests from checksum
+file e.g. F<MD5SUMS>.
 
 =cut
