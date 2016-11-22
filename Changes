@@ -1,5 +1,11 @@
 Revision history for File-Digest
 
+0.005   2016-11-23 (PERLANCAR)
+
+	- Remove (planned) feature to check digest, offload that feature to
+	  App::xsum.
+
+
 0.004   2016-11-23 (PERLANCAR)
 
 	- Support the other SHA algorithms: sha224, sha284, sha512,
