@@ -137,7 +137,7 @@ sub digest_files {
 
 =head1 SYNOPSIS
 
- use File::Digest qw(digest_files check_file_digest);
+ use File::Digest qw(digest_files);
 
  my $res = digest_files(
      files => ["file1", "file2"],
