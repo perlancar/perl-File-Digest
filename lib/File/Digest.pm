@@ -6,7 +6,7 @@ package File::Digest;
 use 5.010001;
 use strict;
 use warnings;
-use Log::Any::IfLOG '$log';
+use Log::ger;
 
 use Exporter qw(import);
 our @EXPORT_OK = qw(digest_files);
@@ -69,11 +69,11 @@ sub digest_file {
     my $algo = $args{algorithm} // 'md5';
 
     unless (-f $file) {
-        $log->warnf("Can't open %s: no such file", $file);
+        log_warn("Can't open %s: no such file", $file);
         return [404, "No such file '$file'"];
     }
     open my($fh), "<", $file or do {
-        $log->warnf("Can't open %s: %s", $file, $!);
+        log_warn("Can't open %s: %s", $file, $!);
         return [500, "Can't open '$file': $!"];
         next;
     };
