@@ -22,6 +22,7 @@ $SPEC{':package'} = {
 
 my %arg_file = (
     file => {
+        summary => 'Filename ("-" means stdin)',
         schema => ['filename*'],
         req => 1,
         pos => 0,
@@ -33,6 +34,7 @@ my %arg_files = (
     files => {
         'x.name.is_plural' => 1,
         'x.name.singular' => 'file',
+        summary => 'Array of filenames (filename "-" means stdin)',
         schema => ['array*', of=>'filename*'],
         req => 1,
         pos => 0,
@@ -68,15 +70,20 @@ sub digest_file {
     my $file = $args{file};
     my $algo = $args{algorithm} // 'md5';
 
-    unless (-f $file) {
-        log_warn("Can't open %s: no such file", $file);
-        return [404, "No such file '$file'"];
+    my $fh;
+    if ($file eq '-') {
+        $fh = \*STDIN;
+    } else {
+        unless (-f $file) {
+            log_warn("Can't open %s: no such file", $file);
+            return [404, "No such file '$file'"];
+        }
+        open $fh, "<", $file or do {
+            log_warn("Can't open %s: %s", $file, $!);
+            return [500, "Can't open '$file': $!"];
+        };
     }
-    open my($fh), "<", $file or do {
-        log_warn("Can't open %s: %s", $file, $!);
-        return [500, "Can't open '$file': $!"];
-        next;
-    };
+
     if ($algo eq 'md5') {
         require Digest::MD5;
         my $ctx = Digest::MD5->new;
