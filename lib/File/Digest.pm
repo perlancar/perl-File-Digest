@@ -45,9 +45,13 @@ my %arg_files = (
 
 my %arg_algorithm = (
     algorithm => {
-        schema => ['str*', in=>[qw/crc32 md5 sha1 sha224 sha256 sha384 sha512 sha512224 sha512256/]],
+        schema => ['str*', in=>[qw/crc32 md5 sha1 sha224 sha256 sha384 sha512 sha512224 sha512256 Digest/]],
         default => 'md5',
         cmdline_aliases => {a=>{}},
+    },
+    digest_args => {
+        schema => ['array*', of=>'str*', 'x.perl.coerce_rules'=>['str_comma_sep']],
+        cmdline_aliases => {A=>{}},
     },
 );
 
@@ -97,6 +101,11 @@ sub digest_file {
     } elsif ($algo eq 'crc32') {
         require Digest::CRC;
         my $ctx = Digest::CRC->new(type=>'crc32');
+        $ctx->addfile($fh);
+        return [200, "OK", $ctx->hexdigest];
+    } elsif ($algo eq 'Digest') {
+        require Digest;
+        my $ctx = Digest->new(@{ $args{digest_args} // [] });
         $ctx->addfile($fh);
         return [200, "OK", $ctx->hexdigest];
     } else {
