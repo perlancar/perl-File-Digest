@@ -17,6 +17,7 @@ our %SPEC;
 
 my %arg_file = (
     file => {
+        summary => 'Filename ("-" means stdin)',
         schema => ['filename*'],
         req => 1,
         pos => 0,
@@ -28,6 +29,7 @@ my %arg_files = (
     files => {
         'x.name.is_plural' => 1,
         'x.name.singular' => 'file',
+        summary => 'Array of filenames (filename "-" means stdin)',
         schema => ['array*', of=>'filename*'],
         req => 1,
         pos => 0,
@@ -36,25 +38,15 @@ my %arg_files = (
     },
 );
 
-my %arg_algorithm = (
+my %args_algorithm = (
     algorithm => {
-        schema => [
-            'str*', {
-                examples=>[qw/MD5 SHA-1 SHA-224 SHA-256 SHA-384 SHA-512 CRC32/], # note: not exhaustive
-                'x.perl.coerce_rules' => ['str_toupper'],
-            },
-        ],
-        default => 'MD5',
+        schema => ['str*', in=>[qw/crc32 md5 sha1 sha224 sha256 sha384 sha512 sha512224 sha512256 Digest/]],
+        default => 'md5',
         cmdline_aliases => {a=>{}},
     },
-    algorithm_args => {
-        schema => [
-            'array*', {
-                of=>'str*',
-                'x.perl.coerce_rules' => ['str_comma_sep'],
-            },
-        ],
-        cmdline_aliases => {o=>{}},
+    digest_args => {
+        schema => ['array*', of=>'str*', 'x.perl.coerce_rules'=>['str_comma_sep']],
+        cmdline_aliases => {A=>{}},
     },
 );
 
@@ -68,7 +60,7 @@ Return 400 status when algorithm is unknown/unsupported.
 _
     args => {
         %arg_file,
-        %arg_algorithm,
+        %args_algorithm,
     },
 };
 sub digest_file {
@@ -77,15 +69,20 @@ sub digest_file {
     my $file = $args{file};
     my $algo = $args{algorithm} // 'md5';
 
-    unless (-f $file) {
-        log_warn("Can't open %s: no such file", $file);
-        return [404, "No such file '$file'"];
+    my $fh;
+    if ($file eq '-') {
+        $fh = \*STDIN;
+    } else {
+        unless (-f $file) {
+            log_warn("Can't open %s: no such file", $file);
+            return [404, "No such file '$file'"];
+        }
+        open $fh, "<", $file or do {
+            log_warn("Can't open %s: %s", $file, $!);
+            return [500, "Can't open '$file': $!"];
+        };
     }
-    open my($fh), "<", $file or do {
-        log_warn("Can't open %s: %s", $file, $!);
-        return [500, "Can't open '$file': $!"];
-        next;
-    };
+
     if ($algo eq 'md5') {
         require Digest::MD5;
         my $ctx = Digest::MD5->new;
@@ -99,6 +96,11 @@ sub digest_file {
     } elsif ($algo eq 'crc32') {
         require Digest::CRC;
         my $ctx = Digest::CRC->new(type=>'crc32');
+        $ctx->addfile($fh);
+        return [200, "OK", $ctx->hexdigest];
+    } elsif ($algo eq 'Digest') {
+        require Digest;
+        my $ctx = Digest->new(@{ $args{digest_args} // [] });
         $ctx->addfile($fh);
         return [200, "OK", $ctx->hexdigest];
     } else {
@@ -116,7 +118,7 @@ Dies when algorithm is unsupported/unknown.
 _
     args => {
         %arg_files,
-        %arg_algorithm,
+        %args_algorithm,
     },
 };
 sub digest_files {
@@ -129,7 +131,7 @@ sub digest_files {
     my @res;
 
     for my $file (@$files) {
-        my $itemres = digest_file(file => $file, algorithm=>$algo);
+        my $itemres = digest_file(file => $file, algorithm=>$algo, digest_args=>$args{digest_args});
         die $itemres->[1] if $itemres->[0] == 400;
         $envres->add_result($itemres->[0], $itemres->[1], {item_id=>$file});
         push @res, {file=>$file, digest=>$itemres->[2]} if $itemres->[0] == 200;
