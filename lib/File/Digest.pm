@@ -15,11 +15,6 @@ use Perinci::Object;
 
 our %SPEC;
 
-$SPEC{':package'} = {
-    v => 1.1,
-    summary => 'Calculate file checksum/digest (using various algorithms)',
-};
-
 my %arg_file = (
     file => {
         summary => 'Filename ("-" means stdin)',
@@ -45,19 +40,29 @@ my %arg_files = (
 
 my %arg_algorithm = (
     algorithm => {
-        schema => ['str*', in=>[qw/crc32 md5 sha1 sha224 sha256 sha384 sha512 sha512224 sha512256 Digest/]],
-        default => 'md5',
+        schema => [
+            'str*', {
+                examples=>[qw/MD5 SHA-1 SHA-224 SHA-256 SHA-384 SHA-512 CRC32/], # note: not exhaustive
+                'x.perl.coerce_rules' => ['str_toupper'],
+            },
+        ],
+        default => 'MD5',
         cmdline_aliases => {a=>{}},
     },
-    digest_args => {
-        schema => ['array*', of=>'str*', 'x.perl.coerce_rules'=>['str_comma_sep']],
-        cmdline_aliases => {A=>{}},
+    algorithm_args => {
+        schema => [
+            'array*', {
+                of=>'str*',
+                'x.perl.coerce_rules' => ['str_comma_sep'],
+            },
+        ],
+        cmdline_aliases => {o=>{}},
     },
 );
 
 $SPEC{digest_file} = {
     v => 1.1,
-    summary => 'Calculate file checksum/digest (using various algorithms)',
+    summary => 'Calculate digest of file',
     description => <<'_',
 
 Return 400 status when algorithm is unknown/unsupported.
@@ -115,7 +120,7 @@ sub digest_file {
 
 $SPEC{digest_files} = {
     v => 1.1,
-    summary => 'Calculate file checksum/digest (using various algorithms)',
+    summary => 'Calculate digests of files',
     description => <<'_',
 
 Dies when algorithm is unsupported/unknown.
@@ -163,14 +168,16 @@ sub digest_files {
 
 =head1 DESCRIPTION
 
+This module provides some convenience when you want to use L<Digest> against
+files.
+
 
 =head1 SEE ALSO
 
-L<sum> from L<PerlPowerTools> (which only supports older algorithms like CRC32).
+L<Digest>
 
-Backend modules: L<Digest::CRC>, L<Digest::MD5>, L<Digest::SHA>.
-
-L<xsum> from L<App::xsum> which can also check checksums/digests from checksum
-file e.g. F<MD5SUMS>.
+L<xsum> from L<App::xsum> is a CLI for File::Digest. It can also check digests
+stored in checksum files against the actual digests computed from the original
+files.
 
 =cut
