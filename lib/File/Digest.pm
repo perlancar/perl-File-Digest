@@ -47,6 +47,14 @@ my %args_algorithm = (
     digest_args => {
         schema => ['array*', of=>'str*', 'x.perl.coerce_rules'=>['str_comma_sep']],
         cmdline_aliases => {A=>{}},
+        schema => [
+            'str*', {
+                examples=>[qw/MD5 SHA-1 SHA-224 SHA-256 SHA-384 SHA-512 CRC32/], # note: not exhaustive
+                'x.perl.coerce_rules' => ['str_toupper'],
+            },
+        ],
+        default => 'MD5',
+        cmdline_aliases => {a=>{}},
     },
 );
 
