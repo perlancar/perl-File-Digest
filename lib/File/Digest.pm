@@ -40,25 +40,15 @@ my %arg_files = (
     },
 );
 
-my %arg_algorithm = (
+my %args_algorithm = (
     algorithm => {
-        schema => [
-            'str*', {
-                examples=>[qw/MD5 SHA-1 SHA-224 SHA-256 SHA-384 SHA-512 CRC32/], # note: not exhaustive
-                'x.perl.coerce_rules' => ['From_str::to_upper'],
-            },
-        ],
-        default => 'MD5',
+        schema => ['str*', in=>[qw/crc32 md5 sha1 sha224 sha256 sha384 sha512 sha512224 sha512256 Digest/]],
+        default => 'md5',
         cmdline_aliases => {a=>{}},
     },
-    algorithm_args => {
-        schema => [
-            'array*', {
-                of=>'str*',
-                'x.perl.coerce_rules' => ['From_str::comma_sep'],
-            },
-        ],
-        cmdline_aliases => {o=>{}},
+    digest_args => {
+        schema => ['array*', of=>'str*', 'x.perl.coerce_rules'=>['From_str::comma_sep']],
+        cmdline_aliases => {A=>{}},
     },
 );
 
@@ -72,7 +62,7 @@ Return 400 status when algorithm is unknown/unsupported.
 _
     args => {
         %arg_file,
-        %arg_algorithm,
+        %args_algorithm,
     },
 };
 sub digest_file {
@@ -130,7 +120,7 @@ Dies when algorithm is unsupported/unknown.
 _
     args => {
         %arg_files,
-        %arg_algorithm,
+        %args_algorithm,
     },
 };
 sub digest_files {
@@ -143,7 +133,7 @@ sub digest_files {
     my @res;
 
     for my $file (@$files) {
-        my $itemres = digest_file(file => $file, algorithm=>$algo);
+        my $itemres = digest_file(file => $file, algorithm=>$algo, digest_args=>$args{digest_args});
         die $itemres->[1] if $itemres->[0] == 400;
         $envres->add_result($itemres->[0], $itemres->[1], {item_id=>$file});
         push @res, {file=>$file, digest=>$itemres->[2]} if $itemres->[0] == 200;
