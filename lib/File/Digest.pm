@@ -1,6 +1,8 @@
 package File::Digest;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use 5.010001;
@@ -43,7 +45,7 @@ my %arg_algorithm = (
         schema => [
             'str*', {
                 examples=>[qw/MD5 SHA-1 SHA-224 SHA-256 SHA-384 SHA-512 CRC32/], # note: not exhaustive
-                'x.perl.coerce_rules' => ['str_toupper'],
+                'x.perl.coerce_rules' => ['From_str::to_upper'],
             },
         ],
         default => 'MD5',
@@ -53,7 +55,7 @@ my %arg_algorithm = (
         schema => [
             'array*', {
                 of=>'str*',
-                'x.perl.coerce_rules' => ['str_comma_sep'],
+                'x.perl.coerce_rules' => ['From_str::comma_sep'],
             },
         ],
         cmdline_aliases => {o=>{}},
